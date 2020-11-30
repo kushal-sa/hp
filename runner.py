@@ -103,32 +103,33 @@ def train_cifar_100(config):
         # Send the current training result back to Tune
         tune.report(mean_accuracy=val_acc,train_acc=train_acc)
 
-def get_tuner(exp,algo,t):
+def get_tuner(exp,algo,param_n):
     
-    if algo == 'Random':
-        search_algo = None
-    elif algo == 'BayOpt':
-        search_algo = 
-    elif algo == 'ASHA':
-        return None
-    else:
-        return None
-    
+    stop = {'training_iteration': MAX_TRAINING_EPOCH_PER_TRIAL}
+    num_samples = 200
+    param_space = orig_param_space
     if exp == 'EXP1':
         ### Experiment 1 ###
+        pass
     elif exp == 'EXP2':
         ### Experiment 2 ###
-        if algo == 'Random':
-            return None
-        elif algo == 'BayOpt':
-            return None
-        elif algo == 'ASHA':
-            return None
-        else:
-            return None
+        pass
     else:
         ### Experiment 3 ###
+        param_space = { k:v for k, v in orig_param_space.items() if k in param_priority[:param_n]}
+
+    search_algo = None
+    scheduler = None
+
+    if algo == 'BayOpt' or algo == 'Hybrid' :
+        search_algo = BayesOptSearch(param_space, metric = 'mean_accuracy', mode='max')
     
+    if algo == 'ASHA' or algo == 'Hybrid':
+        scheduler = ASHAScheduler(
+                metric='mean_accuracy',
+                mode='max',
+                reduction_factor=3,
+                brackets=1)
     
     return param_space, num_samples, stop, scheduler, search_algo
 
