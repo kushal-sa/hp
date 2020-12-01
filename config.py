@@ -1,4 +1,5 @@
 from ray import tune
+import os
 
 base_dir = './results/'
 result_paths = {
@@ -14,8 +15,10 @@ data_paths = {
     'val': './data/val/'
 }
 
-NUM_CPU_PER_TRIAL = 2
-NUM_GPU_PER_TRIAL = 1
+NUM_CPU_PER_TRIAL = os.cpu_count()
+NUM_GPU_PER_TRIAL = 0
+resources_per_trial = {"gpu": NUM_GPU_PER_TRIAL, "cpu": NUM_CPU_PER_TRIAL}
+
 MAX_TRAINING_EPOCH_PER_TRIAL = 15
 
 SCHEDULER_GAMMA = 0.3

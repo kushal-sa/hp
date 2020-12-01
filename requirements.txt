@@ -1,0 +1,7 @@
+pytorch
+torchvision
+ray
+numpy
+matplotlib
+scikit-optimize
+bayesian-optimization

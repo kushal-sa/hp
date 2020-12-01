@@ -24,6 +24,9 @@ TRAIN_SET = datasets.CIFAR100(cf.data_paths['train'],train=True,download=True,tr
 
 VAL_SET = datasets.CIFAR100(cf.data_paths['val'],train=False,download=True,transform=transforms.Compose([transforms.ToTensor()]))
 
+def categorical_to_uniform(cat: tune.sample.Categorical):
+    return tune.uniform(min(cat), max(cat))
+
 def get_data_loaders(batch_size):
     train_loader = DataLoader(TRAIN_SET, batch_size=batch_size, shuffle=True, num_workers=cf.NUM_CPU_PER_TRIAL-1)
     val_loader = DataLoader(VAL_SET, batch_size=batch_size, shuffle=True, num_workers=cf.NUM_CPU_PER_TRIAL-1)
@@ -74,7 +77,7 @@ def test(model, data_loader):
 def train_cifar_100(config):
     
     # Data Setup
-    train_loader, val_loader = get_data_loaders(config['batch_size'])
+    train_loader, val_loader = get_data_loaders(round(config['batch_size']))
     
     config = fill_config(config)
 
@@ -92,7 +95,7 @@ def train_cifar_100(config):
     )
     
     # LR Scheduler
-    scheduler = optim.lr_scheduler.StepLR(optimizer,config['step'],gamma=cf.SCHEDULER_GAMMA)
+    scheduler = optim.lr_scheduler.StepLR(optimizer,round(config['step']),gamma=cf.SCHEDULER_GAMMA)
 
     # Loss Criterion
     criterion = nn.CrossEntropyLoss()
@@ -123,16 +126,17 @@ def get_tuner(exp,algo,param_n):
         ### Experiment 3 ###
         param_space = { k:v for k, v in cf.param_space.items() if k in cf.param_priority[:param_n]}
 
-    num_samples = util.calculate_total_iters_hyperband(reduction_factor,max_t)[0]/max_t
+    num_samples = int(util.calculate_total_iters_hyperband(reduction_factor,max_t)[0] / max_t)
     
-    search_algo = None
+    search_alg = None
     scheduler = None
 
     stop = {time_attr: max_t}
     
     if algo == 'BayOpt' or algo == 'Hybrid' :
-        print(param_space)
-        search_algo = BayesOptSearch(param_space, metric = 'mean_accuracy', mode='max')
+        param_space['step'] = categorical_to_uniform(param_space['step'])
+        param_space['batch_size'] = categorical_to_uniform(param_space['batch_size'])
+        search_alg = BayesOptSearch(metric = 'mean_accuracy', mode='max')
     
     if algo == 'HyperBand' or algo == 'Hybrid':
         scheduler = HyperBandScheduler(
@@ -142,7 +146,7 @@ def get_tuner(exp,algo,param_n):
                 reduction_factor = reduction_factor,
                 max_t = max_t)
     
-    return param_space, num_samples, stop, scheduler, search_algo
+    return param_space, num_samples, stop, scheduler, search_alg
 
 def parse_arguments():
     
@@ -162,16 +166,16 @@ if __name__ == '__main__':
     args = parse_arguments()
     name = args.exp + '_' + args.algo
 
-    param_space, num_samples, stop, scheduler, search_algo = get_tuner(args.exp,args.algo,args.params_n)
+    param_space, num_samples, stop, scheduler, search_alg = get_tuner(args.exp,args.algo,args.params_n)
     
     analysis = tune.run(train_cifar_100,
                       name = name,
                       metric = 'mean_accuracy',
                       mode = 'max',
                       config = param_space,
-                      resource_per_trial = cf.resource_per_trial,
+                      resources_per_trial = cf.resources_per_trial,
                       num_samples = num_samples,
-                      local_dir = cf.result_paths['logs'],
+                      local_dir = cf.result_paths['raw_logs'],
                       stop = stop,
                       scheduler = scheduler,
-                      search_algo = search_algo)
+                      search_alg = search_alg)
