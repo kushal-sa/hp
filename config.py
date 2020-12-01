@@ -30,7 +30,7 @@ param_space = {
     'momentum': tune.uniform(0.5,0.99),
     'step': tune.choice([1,2,3]),
     'weight_decay': tune.loguniform(1e-8,1e-5),
-    'batch_size': tune.choice([2**k for k in range(4,9)])
+    'batch_size': tune.choice([2**k for k in range(7,10)])
 }
 
 param_defaults = {

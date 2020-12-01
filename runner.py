@@ -13,7 +13,7 @@ import torchvision.models as models
 
 from ray import tune
 from ray.tune.schedulers import ASHAScheduler
-from ray.tune.schedulers import HyperBandScheduler
+from model import HyperBandScheduler
 from ray.tune.schedulers import PopulationBasedTraining
 from ray.tune.suggest.bayesopt import BayesOptSearch
 
@@ -119,12 +119,12 @@ def get_tuner(exp,alg,param_n):
     param_space = cf.param_space
     if exp == 'EXP1':
         ### Experiment 1 ###
-        max_t = 300
+        max_t = 256
         reduction_factor = 4
         time_attr = 'time_total_s'
     else:
         ### Experiment 2 and 3 ###
-        max_t = 15
+        max_t = 27
         reduction_factor = 3
         time_attr = 'training_iteration'
     
@@ -149,6 +149,8 @@ def get_tuner(exp,alg,param_n):
                 time_attr = time_attr,
                 reduction_factor = reduction_factor,
                 max_t = max_t)
+    
+        num_samples = int(util.calculate_total_iters_hyperband(reduction_factor,max_t)[1])
     
     return param_space, num_samples, stop, scheduler, search_alg
 
