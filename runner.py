@@ -108,7 +108,7 @@ def train_cifar_100(config):
         # Send the current training result back to Tune
         tune.report(mean_accuracy=val_acc,train_acc=train_acc)
 
-def get_tuner(exp,algo,param_n):
+def get_tuner(exp,alg,param_n):
     
     param_space = cf.param_space
     if exp == 'EXP1':
@@ -133,16 +133,14 @@ def get_tuner(exp,algo,param_n):
 
     stop = {time_attr: max_t}
     
-    if algo == 'BayOpt' or algo == 'Hybrid' :
+    if alg == 'BayesOpt' or alg == 'Hybrid' :
         param_space['step'] = categorical_to_uniform(param_space['step'])
         param_space['batch_size'] = categorical_to_uniform(param_space['batch_size'])
         search_alg = BayesOptSearch(metric = 'mean_accuracy', mode='max')
     
-    if algo == 'HyperBand' or algo == 'Hybrid':
+    if alg == 'HyperBand' or alg == 'Hybrid':
         scheduler = HyperBandScheduler(
                 time_attr = time_attr,
-                metric = 'mean_accuracy',
-                mode = 'max',
                 reduction_factor = reduction_factor,
                 max_t = max_t)
     
@@ -152,8 +150,8 @@ def parse_arguments():
     
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('exp', type = str )
-    parser.add_argument('algo', type =str )
+    parser.add_argument('exp', type = str, choices=['EXP1', 'EXP2', 'EXP3'])
+    parser.add_argument('alg', type =str, choices=['Random', 'HyperBand', 'Hybrid', 'BayesOpt'])
     
     parser.add_argument('-n','--params_n',type=int,default=2)
 
@@ -164,9 +162,9 @@ def parse_arguments():
 if __name__ == '__main__':
 
     args = parse_arguments()
-    name = args.exp + '_' + args.algo
+    name = args.exp + '_' + args.alg
 
-    param_space, num_samples, stop, scheduler, search_alg = get_tuner(args.exp,args.algo,args.params_n)
+    param_space, num_samples, stop, scheduler, search_alg = get_tuner(args.exp,args.alg,args.params_n)
     
     analysis = tune.run(train_cifar_100,
                       name = name,
