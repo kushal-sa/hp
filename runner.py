@@ -1,5 +1,7 @@
 import numpy as np
 import argparse
+from time import time
+import psutil
 
 import torch
 import torch.optim as optim
@@ -75,7 +77,7 @@ def test(model, data_loader):
 
 # trainable object
 def train_cifar_100(config):
-    
+
     # Data Setup
     train_loader, val_loader = get_data_loaders(round(config['batch_size']))
     
@@ -106,6 +108,10 @@ def train_cifar_100(config):
         scheduler.step()
 
         # Send the current training result back to Tune
+        print('[log] time: ', time() - START_TIME)
+        print('[log] ram: ', psutil.virtual_memory().used / (1024 ** 3) - START_RAM)
+        print('[log] val_acc: ', val_acc)
+        print('[log] train_acc: ', train_acc)
         tune.report(mean_accuracy=val_acc,train_acc=train_acc)
 
 def get_tuner(exp,alg,param_n):
@@ -166,6 +172,11 @@ if __name__ == '__main__':
 
     param_space, num_samples, stop, scheduler, search_alg = get_tuner(args.exp,args.alg,args.params_n)
     
+    global START_TIME
+    START_TIME = time()
+    global START_RAM
+    START_RAM = psutil.virtual_memory().used / (1024 ** 3)
+
     analysis = tune.run(train_cifar_100,
                       name = name,
                       metric = 'mean_accuracy',
