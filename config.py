@@ -7,7 +7,7 @@ result_paths = {
     'results':'results/',
 }
 
-result_paths = { k:base_dir+v for k,v in path.items() }
+result_paths = { k:base_dir+v for k,v in result_paths.items() }
 
 data_paths = {
     'train': './data/train/',

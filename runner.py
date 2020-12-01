@@ -13,23 +13,25 @@ from ray import tune
 from ray.tune.schedulers import ASHAScheduler
 from ray.tune.schedulers import HyperBandScheduler
 from ray.tune.schedulers import PopulationBasedTraining
+from ray.tune.suggest.bayesopt import BayesOptSearch
 
-from config import *
+import config as cf
+import util
 
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-TRAIN_SET = datasets.CIFAR100(data_paths['train'],train=True,download=True,transform=transforms.Compose([transforms.ToTensor()]))
+TRAIN_SET = datasets.CIFAR100(cf.data_paths['train'],train=True,download=True,transform=transforms.Compose([transforms.ToTensor()]))
 
-VAL_SET = datasets.CIFAR100(data_paths['val'],train=False,download=True,transform=transforms.Compose([transforms.ToTensor()]))
+VAL_SET = datasets.CIFAR100(cf.data_paths['val'],train=False,download=True,transform=transforms.Compose([transforms.ToTensor()]))
 
 def get_data_loaders(batch_size):
-    train_loader = DataLoader(TRAIN_SET, batch_size=batch_size, shuffle=True, num_workers=NUM_CPU_PER_TRIAL-1)
-    val_loader = DataLoader(VAL_SET, batch_size=batch_size, shuffle=True, num_workers=NUM_CPU_PER_TRIAL-1)
+    train_loader = DataLoader(TRAIN_SET, batch_size=batch_size, shuffle=True, num_workers=cf.NUM_CPU_PER_TRIAL-1)
+    val_loader = DataLoader(VAL_SET, batch_size=batch_size, shuffle=True, num_workers=cf.NUM_CPU_PER_TRIAL-1)
     
     return train_loader, val_loader
 
 def fill_config(config):
-    return {**param_default,**config}
+    return {**cf.param_defaults, **config}
 
 def train(model, optimizer, criterion, train_loader):
     
@@ -60,7 +62,7 @@ def test(model, data_loader):
     total = 0
     with torch.no_grad():
         for batch_idx, (data, target) in enumerate(data_loader):
-            data, target = data.to(device), target.to(device)
+            data, target = data.to(DEVICE), target.to(DEVICE)
             outputs = model(data)
             predicted = torch.argmax(outputs.data, 1)
             total += target.size(0)
@@ -90,7 +92,7 @@ def train_cifar_100(config):
     )
     
     # LR Scheduler
-    scheduler = optim.lr_scheduler.StepLR(optimizer,config['step'],gamma=SCHEDULER_GAMMA)
+    scheduler = optim.lr_scheduler.StepLR(optimizer,config['step'],gamma=cf.SCHEDULER_GAMMA)
 
     # Loss Criterion
     criterion = nn.CrossEntropyLoss()
@@ -105,7 +107,7 @@ def train_cifar_100(config):
 
 def get_tuner(exp,algo,param_n):
     
-    param_space = orig_param_space
+    param_space = cf.param_space
     if exp == 'EXP1':
         ### Experiment 1 ###
         max_t = 300
@@ -119,9 +121,9 @@ def get_tuner(exp,algo,param_n):
     
     if exp == 'EXP3':
         ### Experiment 3 ###
-        param_space = { k:v for k, v in orig_param_space.items() if k in param_priority[:param_n]}
+        param_space = { k:v for k, v in cf.param_space.items() if k in cf.param_priority[:param_n]}
 
-    num_samples = calculate_total_iters_hyperband(reduction_factor,max_t)[0]/max_t
+    num_samples = util.calculate_total_iters_hyperband(reduction_factor,max_t)[0]/max_t
     
     search_algo = None
     scheduler = None
@@ -129,6 +131,7 @@ def get_tuner(exp,algo,param_n):
     stop = {time_attr: max_t}
     
     if algo == 'BayOpt' or algo == 'Hybrid' :
+        print(param_space)
         search_algo = BayesOptSearch(param_space, metric = 'mean_accuracy', mode='max')
     
     if algo == 'HyperBand' or algo == 'Hybrid':
@@ -156,7 +159,7 @@ def parse_arguments():
 
 if __name__ == '__main__':
 
-    args = parseArguments()
+    args = parse_arguments()
     name = args.exp + '_' + args.algo
 
     param_space, num_samples, stop, scheduler, search_algo = get_tuner(args.exp,args.algo,args.params_n)
@@ -166,9 +169,9 @@ if __name__ == '__main__':
                       metric = 'mean_accuracy',
                       mode = 'max',
                       config = param_space,
-                      resource_per_trial = resource_per_trial,
+                      resource_per_trial = cf.resource_per_trial,
                       num_samples = num_samples,
-                      local_dir = result_paths['logs'],
+                      local_dir = cf.result_paths['logs'],
                       stop = stop,
                       scheduler = scheduler,
                       search_algo = search_algo)
