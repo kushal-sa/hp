@@ -105,31 +105,39 @@ def train_cifar_100(config):
 
 def get_tuner(exp,algo,param_n):
     
-    stop = {'training_iteration': MAX_TRAINING_EPOCH_PER_TRIAL}
-    num_samples = 200
     param_space = orig_param_space
     if exp == 'EXP1':
         ### Experiment 1 ###
-        pass
-    elif exp == 'EXP2':
-        ### Experiment 2 ###
-        pass
+        max_t = 300
+        reduction_factor = 4
+        time_attr = 'time_total_s'
     else:
+        ### Experiment 2 and 3 ###
+        max_t = 15
+        reduction_factor = 3
+        time_attr = 'training_iteration'
+    
+    if exp == 'EXP3':
         ### Experiment 3 ###
         param_space = { k:v for k, v in orig_param_space.items() if k in param_priority[:param_n]}
 
+    num_samples = calculate_total_iters_hyperband(reduction_factor,max_t)[0]/max_t
+    
     search_algo = None
     scheduler = None
 
+    stop = {time_attr: max_t}
+    
     if algo == 'BayOpt' or algo == 'Hybrid' :
         search_algo = BayesOptSearch(param_space, metric = 'mean_accuracy', mode='max')
     
-    if algo == 'ASHA' or algo == 'Hybrid':
-        scheduler = ASHAScheduler(
-                metric='mean_accuracy',
-                mode='max',
-                reduction_factor=3,
-                brackets=1)
+    if algo == 'HyperBand' or algo == 'Hybrid':
+        scheduler = HyperBandScheduler(
+                time_attr = time_attr,
+                metric = 'mean_accuracy',
+                mode = 'max',
+                reduction_factor = reduction_factor,
+                max_t = max_t)
     
     return param_space, num_samples, stop, scheduler, search_algo
 
