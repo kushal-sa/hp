@@ -11,7 +11,7 @@ import torchvision.models as models
 
 from ray import tune
 from ray.tune.schedulers import ASHAScheduler
-from ray.tune.schedulers import HyperBandScheduler
+from model import HyperBandScheduler
 from ray.tune.schedulers import PopulationBasedTraining
 from ray.tune.suggest.bayesopt import BayesOptSearch
 
