@@ -140,8 +140,10 @@ def get_tuner(exp,alg,param_n):
     stop = {time_attr: max_t}
     
     if alg == 'BayesOpt' or alg == 'Hybrid' :
-        param_space['step'] = categorical_to_uniform(param_space['step'])
-        param_space['batch_size'] = categorical_to_uniform(param_space['batch_size'])
+        if 'step' in param_space:
+            param_space['step'] = categorical_to_uniform(param_space['step'])
+        if 'batch_size' in param_space:
+            param_space['batch_size'] = categorical_to_uniform(param_space['batch_size'])
         search_alg = BayesOptSearch(metric = 'mean_accuracy', mode='max')
     
     if alg == 'HyperBand' or alg == 'Hybrid':
