@@ -21,6 +21,7 @@ import config as cf
 import util
 
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
+print('RUNNING DEVICE:',DEVICE)
 
 TRAIN_SET = datasets.CIFAR100(cf.data_paths['train'],train=True,download=True,transform=transforms.Compose([transforms.ToTensor()]))
 
@@ -78,10 +79,11 @@ def test(model, data_loader):
 # trainable object
 def train_cifar_100(config):
 
+    config = fill_config(config)
+    
     # Data Setup
     train_loader, val_loader = get_data_loaders(round(config['batch_size']))
     
-    config = fill_config(config)
 
     # Model Setup
     model = models.resnet18()

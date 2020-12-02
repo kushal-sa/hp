@@ -16,7 +16,7 @@ data_paths = {
 }
 
 NUM_CPU_PER_TRIAL = os.cpu_count()
-NUM_GPU_PER_TRIAL = 0
+NUM_GPU_PER_TRIAL = 1 
 resources_per_trial = {"gpu": NUM_GPU_PER_TRIAL, "cpu": NUM_CPU_PER_TRIAL}
 
 MAX_TRAINING_EPOCH_PER_TRIAL = 15
